@@ -17,7 +17,7 @@ const authentication = async (req, res, next) => {
       return res.status(401).send({ message: "No estas autorizado" });
     }
     req.user = user;
-    next();
+    next(); //dejar que vaya al endpoint
   } catch (error) {
     console.log(error);
     res
@@ -25,4 +25,25 @@ const authentication = async (req, res, next) => {
       .send({ error, message: "Ha habido un problema con el token" });
   }
 };
-module.exports = { authentication };
+
+// const isAdmin = async(req, res, next) => {
+//     const admins = ['admin','superadmin'];
+//     if (!admins.includes(req.user.role)) {
+//         return res.status(403).send({
+//             message: 'No tienes permisos'
+//         });
+//     }
+//     next();
+// }
+const isAdmin = async (req, res, next) => {
+  const admins = ["admin", "superadmin"];
+  if (admins.includes(req.user.role)) {
+    next();
+  } else {
+    return res.status(403).send({
+      message: "No tienes permisos",
+    });
+  }
+};
+
+module.exports = { authentication, isAdmin };
