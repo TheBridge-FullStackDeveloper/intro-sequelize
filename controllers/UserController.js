@@ -21,7 +21,11 @@ const UserController = {
       req.body.confirmed = false;
       const password = await bcrypt.hash(req.body.password, 10); //encriptamos contraseña
       const user = await User.create({ ...req.body, password });
-      const url = "http://localhost:3000/users/confirmed/" + req.body.email;
+      const payload = {
+        email: req.body.email,
+      };
+      const emailToken = jwt.sign(payload, jwt_secret, { expiresIn: "30000" });
+      const url = "http://localhost:3000/users/confirmed/" + emailToken;
       await transporter.sendMail({
         to: req.body.email,
         subject: "Confirme su registro",
@@ -37,11 +41,12 @@ const UserController = {
   },
   async confirm(req, res) {
     try {
+      const payload = jwt.verify(req.params.email, jwt_secret);//desencriptar emailToken
       await User.update(
         { confirmed: true },
         {
           where: {
-            email: req.params.email,
+            email: payload.email,
           },
         }
       );
