@@ -1,8 +1,10 @@
 const { User, Post, Token, Sequelize } = require("../models/index.js");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const transporter = require("../config/nodemailer.js");
 const { jwt_secret } = require("../config/config.json")["development"];
 const { Op } = Sequelize;
+
 const UserController = {
   //   create(req, res) {
   //     req.body.role = "user";
@@ -13,17 +15,42 @@ const UserController = {
   //       )
   //       .catch((err) => console.error(err));
   //   },
-  async create(req, res) {
+  async create(req, res, next) {
     try {
       req.body.role = "user"; //añadimos role user por defecto
+      req.body.confirmed = false;
       const password = await bcrypt.hash(req.body.password, 10); //encriptamos contraseña
       const user = await User.create({ ...req.body, password });
+      const url = "http://localhost:3000/users/confirmed/" + req.body.email;
+      await transporter.sendMail({
+        to: req.body.email,
+        subject: "Confirme su registro",
+        html: `<h3>Bienvenido, estás a un paso de registrarte </h3>
+        <a href=${url}> Click para confirmar tu registro</a>
+        `,
+      });
       res.status(201).send({ message: "Usuario creado con éxito", user });
     } catch (error) {
       console.error(error);
-      res.status(500).send(error);
+      next(error);
     }
   },
+  async confirm(req, res) {
+    try {
+      await User.update(
+        { confirmed: true },
+        {
+          where: {
+            email: req.params.email,
+          },
+        }
+      );
+      res.status(201).send("Usuario confirmado con éxito");
+    } catch (error) {
+      console.error(error);
+    }
+  },
+
   getAll(req, res) {
     User.findAll({
       include: [Post],
@@ -80,6 +107,11 @@ const UserController = {
             .status(400)
             .send({ message: "Usuario o contraseña incorrectos" });
         }
+        if (!user.confirmed) {
+          return res
+            .status(400)
+            .send({ message: "Por favor confirma tu correo" });
+        }
         const isMatch = bcrypt.compareSync(req.body.password, user.password);
         if (!isMatch) {
           return res
@@ -96,7 +128,7 @@ const UserController = {
       })
       .catch((err) => {
         console.error(err);
-        res.status(500).send(error);
+        res.status(500).send(err);
       });
   },
   //   async login(req, res) {
