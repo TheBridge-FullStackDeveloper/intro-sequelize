@@ -14,3 +14,5 @@ app.use("/posts",require("./routes/posts"))
 app.use(typeError)
 
 app.listen(PORT,()=>console.log(`Servidor levantado en el puerto ${PORT}`))
+
+module.exports = app;
