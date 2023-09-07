@@ -30,7 +30,7 @@ const PostController = {
       });
   },
   getOneByName(req, res) {
-    Post.findOne({
+    Post.findAll({
       where: {
         title: {
           [Op.like]: `%${req.params.title}%`,
